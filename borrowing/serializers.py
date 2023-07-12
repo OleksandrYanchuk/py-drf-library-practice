@@ -1,7 +1,9 @@
+from django.db import transaction
 from rest_framework import serializers
 
 from book.serializers import BookSerializer
 from .models import Borrowing
+from .telegram_helper import send_telegram_message
 
 
 class BorrowingSerializer(serializers.ModelSerializer):

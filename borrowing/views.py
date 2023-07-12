@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from .models import Borrowing
 from .permissions import IsOwnerOrAdmin
 from .serializers import BorrowingSerializer, BorrowingListSerializer, BorrowingReturnSerializer
+from .telegram_helper import send_telegram_message
 
 
 class BorrowingViewSet(viewsets.ModelViewSet):
@@ -63,12 +64,18 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         if book.inventory == 0:
             return Response({"detail": "Book is not available for borrowing."}, status=status.HTTP_400_BAD_REQUEST)
         book.inventory -= 1
+
         book.save()
 
         serializer.validated_data['user'] = request.user
 
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
+        user = serializer.validated_data['user']
+
+        message = f"New borrowing created:\nUser: {user.email}\nBook: {book.title}"
+        send_telegram_message(message)
+
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     @extend_schema(
