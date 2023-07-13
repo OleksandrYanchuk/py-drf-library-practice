@@ -18,4 +18,4 @@ urlpatterns = [
     ),
 ] + router.urls
 
-app_name = "payment"
+app_name = "payments"

@@ -11,4 +11,4 @@ urlpatterns = [
     path('', include(router.urls)),
 ]
 
-app_name = "borrowing"
+app_name = "borrowings"

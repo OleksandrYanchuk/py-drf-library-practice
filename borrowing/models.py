@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.db import models
 
 from book.models import Book
@@ -20,14 +22,24 @@ class Borrowing(models.Model):
 
     @property
     def total_price(self):
-        return (
-                self.book.daily_fee
-                * (self.expected_return_date - self.borrow_date).days
-        )
+        borrow_date = datetime.strptime(str(self.borrow_date), "%Y-%m-%d").date()
+        expected_return_date = datetime.strptime(str(self.expected_return_date), "%Y-%m-%d").date()
+
+        if self.expected_return_date:
+            return (
+                    self.book.daily_fee
+                    * (expected_return_date - borrow_date).days
+            )
+        return 0
 
     @property
     def fine_price(self):
-        return (
-                self.book.daily_fee
-                * (self.actual_return_date - self.expected_return_date).days
-        ) * 2
+        if self.actual_return_date:
+            actual_return_date = datetime.strptime(str(self.actual_return_date), "%Y-%m-%d").date()
+            expected_return_date = datetime.strptime(str(self.expected_return_date), "%Y-%m-%d").date()
+            return (
+                    self.book.daily_fee
+                    * (actual_return_date - expected_return_date).days
+            ) * 2
+        return 0
+
