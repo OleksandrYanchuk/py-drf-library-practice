@@ -1,3 +1,6 @@
+import os
+
+import stripe
 from django.utils import timezone, dateformat
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiParameter
@@ -6,10 +9,14 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from payment.models import Payment
 from .models import Borrowing
 from .permissions import IsOwnerOrAdmin
 from .serializers import BorrowingSerializer, BorrowingListSerializer, BorrowingReturnSerializer
 from .telegram_helper import send_telegram_message
+
+
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 
 class BorrowingViewSet(viewsets.ModelViewSet):
@@ -55,28 +62,8 @@ class BorrowingViewSet(viewsets.ModelViewSet):
 
         return BorrowingSerializer
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        # Decrease book inventory by 1
-        book = serializer.validated_data['book']
-        if book.inventory == 0:
-            return Response({"detail": "Book is not available for borrowing."}, status=status.HTTP_400_BAD_REQUEST)
-        book.inventory -= 1
-
-        book.save()
-
-        serializer.validated_data['user'] = request.user
-
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        user = serializer.validated_data['user']
-
-        message = f"New borrowing created:\nUser: {user.email}\nBook: {book.title}"
-        send_telegram_message(message)
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
     @extend_schema(
         parameters=[
@@ -107,7 +94,7 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         if borrowing.actual_return_date is not None:
             return Response({"detail": "Borrowing has already been returned."}, status=status.HTTP_400_BAD_REQUEST)
 
-        borrowing.actual_return_date = dateformat.format(timezone.now(), 'Y-m-d')
+        borrowing.actual_return_date = timezone.now().date()
         borrowing.save()
 
         # Increase book inventory by 1
@@ -116,4 +103,14 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         book.save()
 
         serializer = self.get_serializer(borrowing)
+        if borrowing.actual_return_date > borrowing.expected_return_date:
+            fine_amount = borrowing.fine_price
+
+            Payment.objects.create(
+                status=Payment.StatusChoices.PENDING,
+                type=Payment.TypeChoices.FINE,
+                borrowing=borrowing,
+                money_to_pay=fine_amount,
+            )
+
         return Response(serializer.data)
