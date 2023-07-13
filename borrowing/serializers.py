@@ -45,28 +45,7 @@ class BorrowingSerializer(serializers.ModelSerializer):
                 )
             return book
 
-        @transaction.atomic
-        def create(self, validated_data):
-            book = validated_data["book"]
-            user = self.context["request"].user
 
-            borrowing = Borrowing.objects.create(
-                expected_return_date=validated_data["expected_return_date"],
-                book=book,
-                user=user,
-            )
-
-            create_stripe_session(self.context["request"], borrowing)
-
-            book.inventory -= 1
-            book.save()
-
-            message = (
-                f"New borrowing created:\nUser: {user.email}\nBook: {book.title}"
-            )
-            send_telegram_message(message)
-
-            return borrowing
 
 
 class BorrowingListSerializer(BorrowingSerializer):

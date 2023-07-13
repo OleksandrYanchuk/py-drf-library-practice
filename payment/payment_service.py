@@ -1,9 +1,11 @@
 import os
 
 import stripe
+from _decimal import Decimal
 from django.db import transaction
 from rest_framework.reverse import reverse
 
+from book.models import Book
 from .models import Payment
 
 
@@ -13,6 +15,10 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 @transaction.atomic
 def create_stripe_session(request, borrowing):
     total_price = borrowing.total_price
+
+    if total_price <= 0:
+        total_price = Decimal(str(borrowing.book.daily_fee))
+
     unit_amount = int(total_price * 100)
 
     payment = Payment.objects.create(
@@ -38,10 +44,10 @@ def create_stripe_session(request, borrowing):
         ],
         mode="payment",
         success_url=request.build_absolute_uri(
-            reverse("borrowings:payment_success", kwargs={"pk": payment.pk})
+            reverse("payments:payment_success", kwargs={"pk": payment.pk})
         ),
         cancel_url=request.build_absolute_uri(
-            reverse("borrowings:payment_cancel", kwargs={"pk": payment.pk})
+            reverse("payments:payment_cancel", kwargs={"pk": payment.pk})
         ),
     )
 

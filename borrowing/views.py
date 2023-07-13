@@ -1,6 +1,7 @@
 import os
 
 import stripe
+from django.db import transaction
 from django.utils import timezone, dateformat
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiParameter
@@ -10,6 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from payment.models import Payment
+from payment.payment_service import create_stripe_session
 from .models import Borrowing
 from .permissions import IsOwnerOrAdmin
 from .serializers import BorrowingSerializer, BorrowingListSerializer, BorrowingReturnSerializer
@@ -62,8 +64,32 @@ class BorrowingViewSet(viewsets.ModelViewSet):
 
         return BorrowingSerializer
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        book = serializer.validated_data["book"]
+        user = request.user
+
+        borrowing = Borrowing.objects.create(
+            expected_return_date=serializer.data["expected_return_date"],
+            book=book,
+            user=user,
+        )
+
+        create_stripe_session(request, borrowing)
+        if book.inventory == 0:
+            return Response({"detail": "Book is not available for borrowing."}, status=status.HTTP_400_BAD_REQUEST)
+        book.inventory -= 1
+        book.save()
+
+        headers = self.get_success_headers(serializer.data)
+        message = (
+            f"New borrowing created:\nUser: {user.email}\nBook: {book.title}"
+        )
+        send_telegram_message(message)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     @extend_schema(
         parameters=[

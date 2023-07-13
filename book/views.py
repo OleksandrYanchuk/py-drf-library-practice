@@ -23,18 +23,6 @@ class BookViewSet(viewsets.ModelViewSet):
 
         return queryset.distinct()
 
-    def perform_create(self, serializer):
-        """Creates a new user profile and associates it with the authenticated user"""
-        serializer.save(user=self.request.user)
-
-    def perform_update(self, serializer):
-        """Updates an existing user profile for the authenticated user"""
-        serializer.save(user=self.request.user)
-
-    def perform_destroy(self, instance):
-        """Deletes the specified user profile if the authenticated user is the owner"""
-        instance.delete()
-
     @extend_schema(
         parameters=[
             OpenApiParameter(
