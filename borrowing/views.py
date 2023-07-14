@@ -2,7 +2,7 @@ import os
 
 import stripe
 from django.db import transaction
-from django.utils import timezone, dateformat
+from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import viewsets, filters, status
@@ -14,9 +14,12 @@ from payment.models import Payment
 from payment.payment_service import create_stripe_session
 from .models import Borrowing
 from .permissions import IsOwnerOrAdmin
-from .serializers import BorrowingSerializer, BorrowingListSerializer, BorrowingReturnSerializer
+from .serializers import (
+    BorrowingSerializer,
+    BorrowingListSerializer,
+    BorrowingReturnSerializer,
+)
 from .telegram_helper import send_telegram_message
-
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
@@ -26,32 +29,35 @@ class BorrowingViewSet(viewsets.ModelViewSet):
     serializer_class = BorrowingSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.OrderingFilter, filters.SearchFilter]
-    search_fields = ['user__email', 'book__title']  # Add additional fields for search
-    ordering_fields = ['borrow_date', 'expected_return_date',
-                       'actual_return_date']  # Add additional fields for ordering
+    search_fields = ["user__email", "book__title"]  # Add additional fields for search
+    ordering_fields = [
+        "borrow_date",
+        "expected_return_date",
+        "actual_return_date",
+    ]  # Add additional fields for ordering
 
     def get_queryset(self):
         user = self.request.user
-        is_active = self.request.query_params.get('is_active', None)
-        user_id = self.request.query_params.get('user_id', None)
+        is_active = self.request.query_params.get("is_active", None)
+        user_id = self.request.query_params.get("user_id", None)
 
         if user.is_superuser:
             borrowings = Borrowing.objects.all()
-            if is_active is not None and is_active.lower() == 'true':
+            if is_active is not None and is_active.lower() == "true":
                 borrowings = borrowings.filter(actual_return_date__isnull=True)
             if user_id is not None:
                 borrowings = borrowings.filter(user_id=user_id)
             return borrowings
         elif user.is_authenticated:
             borrowings = Borrowing.objects.filter(user=user)
-            if is_active is not None and is_active.lower() == 'true':
+            if is_active is not None and is_active.lower() == "true":
                 borrowings = borrowings.filter(actual_return_date__isnull=True)
             return borrowings
         else:
             return Borrowing.objects.none()
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ["list", "retrieve"]:
             return [IsOwnerOrAdmin()]
         return super().get_permissions()
 
@@ -79,17 +85,20 @@ class BorrowingViewSet(viewsets.ModelViewSet):
 
         create_stripe_session(request, borrowing)
         if book.inventory == 0:
-            return Response({"detail": "Book is not available for borrowing."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Book is not available for borrowing."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         book.inventory -= 1
         book.save()
 
         headers = self.get_success_headers(serializer.data)
-        message = (
-            f"New borrowing created:\nUser: {user.email}\nBook: {book.title}"
-        )
+        message = f"New borrowing created:\nUser: {user.email}\nBook: {book.title}"
         send_telegram_message(message)
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED, headers=headers
+        )
 
     @extend_schema(
         parameters=[
@@ -118,13 +127,16 @@ class BorrowingViewSet(viewsets.ModelViewSet):
 
         # Check if borrowing is already returned
         if borrowing.actual_return_date is not None:
-            return Response({"detail": "Borrowing has already been returned."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Borrowing has already been returned."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         borrowing.actual_return_date = timezone.now().date()
         borrowing.save()
 
         # Increase book inventory by 1
-        book = serializer.validated_data['book']
+        book = serializer.validated_data["book"]
         book.inventory += 1
         book.save()
 

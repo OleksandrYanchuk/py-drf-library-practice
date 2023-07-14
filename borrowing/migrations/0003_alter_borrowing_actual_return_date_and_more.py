@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('borrowing', '0002_alter_borrowing_actual_return_date_and_more'),
+        ("borrowing", "0002_alter_borrowing_actual_return_date_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='borrowing',
-            name='actual_return_date',
+            model_name="borrowing",
+            name="actual_return_date",
             field=models.DateField(blank=True, null=True),
         ),
         migrations.AlterField(
-            model_name='borrowing',
-            name='expected_return_date',
+            model_name="borrowing",
+            name="expected_return_date",
             field=models.DateField(),
         ),
     ]

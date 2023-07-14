@@ -1,5 +1,7 @@
-from django_q.tasks import async_task
 from datetime import date, timedelta
+
+from django_q.tasks import async_task
+
 from .models import Borrowing
 from .telegram_helper import send_telegram_message
 
@@ -7,8 +9,7 @@ from .telegram_helper import send_telegram_message
 def check_overdue_borrowings():
     tomorrow = date.today() + timedelta(days=1)
     overdue_borrowings = Borrowing.objects.filter(
-        expected_return_date__lte=tomorrow,
-        actual_return_date__isnull=True
+        expected_return_date__lte=tomorrow, actual_return_date__isnull=True
     )
 
     if overdue_borrowings.exists():

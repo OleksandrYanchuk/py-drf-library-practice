@@ -1,14 +1,9 @@
-from django.db import transaction
-from django.utils import timezone, dateformat
-from rest_framework import serializers, status
-from rest_framework.response import Response
+from rest_framework import serializers
 
 from book.serializers import BookSerializer
 from payment.models import Payment
-from payment.payment_service import create_stripe_session
 from payment.serializers import PaymentSerializer
 from .models import Borrowing
-from .telegram_helper import send_telegram_message
 
 
 class BorrowingSerializer(serializers.ModelSerializer):
@@ -44,8 +39,6 @@ class BorrowingSerializer(serializers.ModelSerializer):
                     "Book is not available for borrowing."
                 )
             return book
-
-
 
 
 class BorrowingListSerializer(BorrowingSerializer):
