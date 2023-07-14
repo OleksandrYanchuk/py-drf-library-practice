@@ -7,6 +7,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -117,6 +118,9 @@ class BorrowingViewSet(viewsets.ModelViewSet):
         ]
     )
     def list(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            raise PermissionDenied("You are not authorized to access this resource.")
+
         return super().list(request, *args, **kwargs)
 
     @action(methods=["POST"], detail=True, url_path="return")
