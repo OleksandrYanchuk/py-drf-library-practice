@@ -4,30 +4,33 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('payment', '0002_alter_payment_borrowing_alter_payment_session_url'),
+        ("payment", "0002_alter_payment_borrowing_alter_payment_session_url"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='payment',
-            name='money_to_pay',
+            model_name="payment",
+            name="money_to_pay",
             field=models.DecimalField(decimal_places=2, max_digits=8),
         ),
         migrations.AlterField(
-            model_name='payment',
-            name='session_id',
+            model_name="payment",
+            name="session_id",
             field=models.CharField(blank=True, max_length=255, null=True),
         ),
         migrations.AlterField(
-            model_name='payment',
-            name='status',
-            field=models.CharField(choices=[('Pending', 'Pending'), ('Paid', 'Paid')], max_length=50),
+            model_name="payment",
+            name="status",
+            field=models.CharField(
+                choices=[("Pending", "Pending"), ("Paid", "Paid")], max_length=50
+            ),
         ),
         migrations.AlterField(
-            model_name='payment',
-            name='type',
-            field=models.CharField(choices=[('Payment', 'Payment'), ('Fine', 'Fine')], max_length=50),
+            model_name="payment",
+            name="type",
+            field=models.CharField(
+                choices=[("Payment", "Payment"), ("Fine", "Fine")], max_length=50
+            ),
         ),
     ]

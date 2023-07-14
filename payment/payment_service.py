@@ -5,9 +5,7 @@ from _decimal import Decimal
 from django.db import transaction
 from rest_framework.reverse import reverse
 
-from book.models import Book
 from .models import Payment
-
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
